@@ -1,0 +1,890 @@
+<title>LiteLLM Supply Chain Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap">
+
+<style>
+/* ── Layout: single-column runbook with sticky section nav ── */
+:root {
+  --bg:         #0d1117;
+  --surface:    #161b22;
+  --surface-2:  #21262d;
+  --border:     #30363d;
+  --fg:         #e6edf3;
+  --fg-muted:   #8b949e;
+  --accent:     #f78166;
+  --accent-2:   #79c0ff;
+  --green:      #56d364;
+  --yellow:     #e3b341;
+  --red:        #f85149;
+  --code-bg:    #161b22;
+  --mono:       "IBM Plex Mono", "Courier New", monospace;
+  --sans:       "IBM Plex Sans", system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg:        #ffffff;
+    --surface:   #f6f8fa;
+    --surface-2: #eaeef2;
+    --border:    #d0d7de;
+    --fg:        #1f2328;
+    --fg-muted:  #656d76;
+    --accent:    #cf222e;
+    --accent-2:  #0550ae;
+    --green:     #1a7f37;
+    --yellow:    #9a6700;
+    --red:       #cf222e;
+    --code-bg:   #f6f8fa;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg:        #ffffff;
+  --surface:   #f6f8fa;
+  --surface-2: #eaeef2;
+  --border:    #d0d7de;
+  --fg:        #1f2328;
+  --fg-muted:  #656d76;
+  --accent:    #cf222e;
+  --accent-2:  #0550ae;
+  --green:     #1a7f37;
+  --yellow:    #9a6700;
+  --red:       #cf222e;
+  --code-bg:   #f6f8fa;
+  color-scheme: light;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.7;
+  margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0;
+}
+
+/* ── Header ── */
+.site-header {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 20;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 0 max(24px, env(safe-area-inset-left, 0px));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 52px;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 30;
+  background: var(--bg);
+}
+
+.header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+.header-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+  margin: 0;
+}
+.header-muted {
+  font-size: 13px;
+  color: var(--fg-muted);
+  margin-left: auto;
+  display: none;
+}
+@media (min-width: 600px) { .header-muted { display: block; } }
+
+/* ── Layout ── */
+.layout {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 40px 0 80px;
+}
+
+/* ── Hero ── */
+.hero {
+  padding: 48px 0 40px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 48px;
+}
+.hero-eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+.hero h1 {
+  font-size: clamp(22px, 4vw, 32px);
+  font-weight: 700;
+  line-height: 1.2;
+  text-wrap: balance;
+  margin: 0 0 16px;
+}
+.hero-sub {
+  font-size: 15px;
+  color: var(--fg-muted);
+  max-width: 620px;
+  margin-bottom: 28px;
+}
+.hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tag {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  color: var(--fg-muted);
+  background: var(--surface);
+}
+.tag.green { color: var(--green); border-color: color-mix(in srgb, var(--green) 35%, transparent); background: color-mix(in srgb, var(--green) 8%, transparent); }
+.tag.yellow { color: var(--yellow); border-color: color-mix(in srgb, var(--yellow) 35%, transparent); background: color-mix(in srgb, var(--yellow) 8%, transparent); }
+.tag.red { color: var(--red); border-color: color-mix(in srgb, var(--red) 35%, transparent); background: color-mix(in srgb, var(--red) 8%, transparent); }
+.tag.blue { color: var(--accent-2); border-color: color-mix(in srgb, var(--accent-2) 35%, transparent); background: color-mix(in srgb, var(--accent-2) 8%, transparent); }
+
+/* ── Attack chain diagram ── */
+.chain {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+  margin: 32px 0;
+  overflow-x: auto;
+}
+.chain-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  margin-bottom: 20px;
+}
+.chain-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.chain-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  position: relative;
+}
+.chain-step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 32px;
+  width: 1px;
+  height: calc(100% + 2px);
+  background: var(--border);
+}
+.step-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  position: relative;
+  z-index: 1;
+}
+.step-icon.install { background: color-mix(in srgb, var(--accent-2) 15%, var(--surface-2)); color: var(--accent-2); border: 1px solid color-mix(in srgb, var(--accent-2) 30%, transparent); }
+.step-icon.exec    { background: color-mix(in srgb, var(--yellow) 15%, var(--surface-2));   color: var(--yellow);   border: 1px solid color-mix(in srgb, var(--yellow) 30%, transparent); }
+.step-icon.c2      { background: color-mix(in srgb, var(--accent) 15%, var(--surface-2));   color: var(--accent);   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
+.step-icon.persist { background: color-mix(in srgb, var(--red) 15%, var(--surface-2));      color: var(--red);      border: 1px solid color-mix(in srgb, var(--red) 30%, transparent); }
+.step-body { padding: 4px 0 20px; }
+.step-label { font-weight: 600; font-size: 14px; color: var(--fg); }
+.step-desc  { font-size: 13px; color: var(--fg-muted); margin-top: 2px; }
+.step-file  { font-family: var(--mono); font-size: 12px; color: var(--accent-2); background: var(--surface-2); padding: 1px 6px; border-radius: 3px; display: inline-block; margin-top: 4px; }
+
+/* ── Sections ── */
+.section {
+  margin-bottom: 52px;
+  scroll-margin-top: 64px;
+}
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.section-num {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-muted);
+  min-width: 28px;
+}
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--fg);
+}
+
+/* ── Code blocks ── */
+.code-block {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin: 12px 0;
+  overflow: hidden;
+}
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.code-lang {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-muted);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.copy-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.copy-btn:hover { color: var(--fg); border-color: var(--fg-muted); }
+.copy-btn.copied { color: var(--green); border-color: var(--green); }
+pre {
+  margin: 0;
+  padding: 16px;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--fg);
+}
+code { font-family: var(--mono); font-size: 0.9em; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; color: var(--accent-2); }
+
+/* ── File tree ── */
+.file-tree {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 20px;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 2;
+}
+.file-tree .dir  { color: var(--accent-2); font-weight: 600; }
+.file-tree .file { color: var(--fg); }
+.file-tree .note { color: var(--fg-muted); font-size: 11px; padding-left: 8px; }
+.file-tree .warn { color: var(--yellow); }
+
+/* ── Callouts ── */
+.callout {
+  display: flex;
+  gap: 12px;
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin: 16px 0;
+  font-size: 14px;
+}
+.callout.warn { background: color-mix(in srgb, var(--yellow) 8%, transparent); border: 1px solid color-mix(in srgb, var(--yellow) 25%, transparent); }
+.callout.info { background: color-mix(in srgb, var(--accent-2) 8%, transparent); border: 1px solid color-mix(in srgb, var(--accent-2) 25%, transparent); }
+.callout.danger { background: color-mix(in srgb, var(--red) 8%, transparent); border: 1px solid color-mix(in srgb, var(--red) 25%, transparent); }
+.callout-icon { font-size: 16px; flex-shrink: 0; line-height: 1.6; }
+.callout-body { color: var(--fg); }
+.callout.warn  .callout-body strong { color: var(--yellow); }
+.callout.info  .callout-body strong { color: var(--accent-2); }
+.callout.danger .callout-body strong { color: var(--red); }
+
+/* ── IOC table ── */
+.ioc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 12px;
+}
+.ioc-table th {
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.ioc-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.ioc-table tr:last-child td { border-bottom: none; }
+.ioc-table code { font-size: 12px; }
+.severity { display: inline-block; font-family: var(--mono); font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.05em; }
+.severity.critical { background: color-mix(in srgb, var(--red) 15%, transparent); color: var(--red); }
+.severity.high     { background: color-mix(in srgb, var(--yellow) 15%, transparent); color: var(--yellow); }
+.severity.medium   { background: color-mix(in srgb, var(--accent-2) 15%, transparent); color: var(--accent-2); }
+
+/* ── Step list ── */
+.steps { list-style: none; padding: 0; margin: 0; counter-reset: steps; }
+.steps li {
+  counter-increment: steps;
+  display: flex;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.steps li::before {
+  content: counter(steps);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  background: color-mix(in srgb, var(--accent) 15%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 50%;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.step-content { flex: 1; min-width: 0; }
+.step-content h4 { margin: 0 0 6px; font-size: 15px; font-weight: 600; }
+.step-content p  { margin: 0 0 8px; color: var(--fg-muted); font-size: 14px; }
+
+/* ── Expected output ── */
+.output-block {
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 12px 0;
+}
+.output-header {
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  padding: 7px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.terminal-dots { display: flex; gap: 5px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; }
+.dot.r { background: #ff5f57; }
+.dot.y { background: #febc2e; }
+.dot.g { background: #28c840; }
+.output-label { font-family: var(--mono); font-size: 11px; color: var(--fg-muted); }
+.output-block pre {
+  background: #000;
+  color: #c9d1d9;
+  padding: 16px;
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+.output-block .ok   { color: #56d364; }
+.output-block .warn { color: #e3b341; }
+.output-block .path { color: #79c0ff; }
+.output-block .cmd  { color: #d2a8ff; }
+
+/* ── Prereq grid ── */
+.prereq-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.prereq-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.prereq-icon { font-size: 20px; line-height: 1; }
+.prereq-name { font-size: 13px; font-weight: 600; color: var(--fg); }
+.prereq-sub  { font-size: 12px; color: var(--fg-muted); margin-top: 2px; }
+
+/* ── Arch diagram ── */
+.arch {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+  margin: 16px 0;
+}
+.arch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: stretch;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+.arch-pod {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 16px;
+  min-width: 160px;
+  text-align: center;
+  flex: 1;
+}
+.arch-pod-name { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+.arch-pod-role { font-size: 11px; color: var(--fg-muted); }
+.arch-pod.victim { border-color: color-mix(in srgb, var(--red) 40%, transparent); }
+.arch-pod.c2     { border-color: color-mix(in srgb, var(--yellow) 40%, transparent); }
+.arch-pod.net    { border-color: color-mix(in srgb, var(--green) 40%, transparent); }
+.arch-arrow { text-align: center; color: var(--fg-muted); font-size: 18px; align-self: center; }
+.arch-note { font-size: 12px; color: var(--fg-muted); text-align: center; margin-top: 10px; }
+</style>
+
+<!-- ── Sticky Header ── -->
+<header class="site-header">
+  <span class="header-badge">&#x26A0; SECURITY LAB</span>
+  <h1 class="header-title">LiteLLM 1.107.0 — Supply Chain Reproduction</h1>
+  <span class="header-muted">Isolated · Kubernetes · Educational</span>
+</header>
+
+<div class="layout">
+
+  <!-- ── Hero ── -->
+  <div class="hero">
+    <div class="hero-eyebrow">Supply Chain Attack · PyPI Compromise</div>
+    <h1>Reproducing the LiteLLM<br>1.107.0 Backdoor in a Container Lab</h1>
+    <p class="hero-sub">
+      A self-contained Kubernetes lab that reproduces every stage of the malicious
+      <code>litellm 1.107.0</code> package — .pth auto-execution, embedded payload, C2 beaconing,
+      and persistence — with all traffic confined inside the cluster.
+    </p>
+    <div class="hero-meta">
+      <span class="tag green">Safe · No real C2</span>
+      <span class="tag blue">Kubernetes</span>
+      <span class="tag yellow">Python Supply Chain</span>
+      <span class="tag red">RCE Demo</span>
+    </div>
+  </div>
+
+  <!-- ── Attack chain ── -->
+  <div class="section" id="chain">
+    <div class="section-header">
+      <span class="section-num">—</span>
+      <h2 class="section-title">Attack Chain Being Reproduced</h2>
+    </div>
+    <div class="chain">
+      <div class="chain-title">Execution flow · litellm 1.107.0</div>
+      <div class="chain-steps">
+        <div class="chain-step">
+          <div class="step-icon install">01</div>
+          <div class="step-body">
+            <div class="step-label">Package installed via pip</div>
+            <div class="step-desc">Malicious files land in Python's site-packages directory alongside the legitimate litellm code.</div>
+            <span class="step-file">cook.pth &nbsp;·&nbsp; cook.py &nbsp;·&nbsp; sitecustomize.py</span>
+          </div>
+        </div>
+        <div class="chain-step">
+          <div class="step-icon exec">02</div>
+          <div class="step-body">
+            <div class="step-label">Python starts — auto-execution fires</div>
+            <div class="step-desc"><code>cook.pth</code> abuses Python's .pth mechanism to import <code>cook</code>. <code>sitecustomize.py</code> is auto-imported by the interpreter on startup. Neither requires the user to import litellm.</div>
+          </div>
+        </div>
+        <div class="chain-step">
+          <div class="step-icon exec">03</div>
+          <div class="step-body">
+            <div class="step-label">Embedded base64+zlib payload executes</div>
+            <div class="step-desc">An obfuscated payload inside <code>sitecustomize.py</code> is decompressed at runtime and executed via <code>exec(compile(...))</code>.</div>
+          </div>
+        </div>
+        <div class="chain-step">
+          <div class="step-icon c2">04</div>
+          <div class="step-body">
+            <div class="step-label">C2 domain retrieved and payload fetched</div>
+            <div class="step-desc">The attacker's GitHub repo serves a domain. That domain is used to fetch arbitrary Python from <code>/codepy</code>, which is compiled and executed — giving the attacker live RCE with the ability to change the payload post-install.</div>
+            <span class="step-file">raw.githubusercontent.com/… → domain.txt → http://&#123;domain&#125;/codepy</span>
+          </div>
+        </div>
+        <div class="chain-step">
+          <div class="step-icon persist">05</div>
+          <div class="step-body">
+            <div class="step-label">Background daemon persists and polls</div>
+            <div class="step-desc"><code>fork() + setsid()</code> daemonizes the process. A lock file is written. Every ~hour the daemon fetches and re-executes a fresh payload from the C2.</div>
+            <span class="step-file">/tmp/remote_code_loader.lock &nbsp;·&nbsp; polls every ~3600s</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Prerequisites ── -->
+  <div class="section" id="prereqs">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2 class="section-title">Prerequisites</h2>
+    </div>
+    <div class="prereq-grid">
+      <div class="prereq-card">
+        <div class="prereq-icon">🐳</div>
+        <div>
+          <div class="prereq-name">Docker</div>
+          <div class="prereq-sub">To build the victim and mock-c2 images locally</div>
+        </div>
+      </div>
+      <div class="prereq-card">
+        <div class="prereq-icon">☸️</div>
+        <div>
+          <div class="prereq-name">Kubernetes cluster</div>
+          <div class="prereq-sub">minikube, kind, k3s, or any cluster</div>
+        </div>
+      </div>
+      <div class="prereq-card">
+        <div class="prereq-icon">⚙️</div>
+        <div>
+          <div class="prereq-name">kubectl</div>
+          <div class="prereq-sub">Configured and pointed at your cluster</div>
+        </div>
+      </div>
+      <div class="prereq-card">
+        <div class="prereq-icon">📁</div>
+        <div>
+          <div class="prereq-name">Lab files</div>
+          <div class="prereq-sub">All files from the <code>reproduce malicious LLM</code> folder</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Architecture ── -->
+  <div class="section" id="arch">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2 class="section-title">Lab Architecture</h2>
+    </div>
+    <p style="color:var(--fg-muted);font-size:14px;margin:0 0 16px">Everything runs in the <code>supply-chain-lab</code> namespace. A NetworkPolicy blocks the victim from reaching any real external host — it can only talk to mock-c2-svc on port 80 and DNS on port 53.</p>
+    <div class="arch">
+      <div class="arch-row">
+        <div class="arch-pod victim">
+          <div class="arch-pod-name" style="color:var(--red)">victim</div>
+          <div class="arch-pod-role">Python 3.11 container<br>with malicious package installed</div>
+        </div>
+        <div class="arch-arrow">⟶</div>
+        <div class="arch-pod c2">
+          <div class="arch-pod-name" style="color:var(--yellow)">mock-c2</div>
+          <div class="arch-pod-role">Flask server replacing<br>attacker's GitHub + C2 host</div>
+        </div>
+        <div class="arch-arrow" style="color:var(--green)">⊘</div>
+        <div class="arch-pod net">
+          <div class="arch-pod-name" style="color:var(--green)">Internet</div>
+          <div class="arch-pod-role">Blocked by<br>NetworkPolicy egress</div>
+        </div>
+      </div>
+      <div class="arch-note">mock-c2 serves <code>/domain.txt</code> and <code>/codepy</code> — both replicate what the real attacker's infrastructure served, with a safe harmless payload</div>
+    </div>
+
+    <h3 style="font-size:15px;font-weight:600;margin:28px 0 10px">File Structure</h3>
+    <div class="file-tree">
+      <div><span class="dir">reproduce malicious LLM/</span></div>
+      <div>&nbsp;&nbsp;<span class="dir">malicious-pkg/</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">litellm_evil/</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">__init__.py</span><span class="note">— litellm package stub</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">cook.pth</span><span class="note">— abuses .pth: runs "import cook" on every Python start</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">cook.py</span><span class="note">— first-stage loader (writes /tmp/cook_executed)</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="warn">sitecustomize.py.txt</span><span class="note warn">— ⚠ rename to .py before building (see Step 1)</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">install.py</span><span class="note">— copies .pth + sitecustomize.py into site-packages</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">setup.py</span><span class="note">— fake litellm 1.107.0 package metadata</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">Dockerfile</span><span class="note">— victim image</span></div>
+      <div>&nbsp;&nbsp;<span class="dir">mock-c2/</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">app.py</span><span class="note">— Flask C2 server (safe payloads)</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">Dockerfile</span></div>
+      <div>&nbsp;&nbsp;<span class="dir">k8s/</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">lab.yaml</span><span class="note">— namespace, deployments, service, NetworkPolicy</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">inspect.sh</span><span class="note">— verifies all IOC files after deploy</span></div>
+    </div>
+  </div>
+
+  <!-- ── Steps ── -->
+  <div class="section" id="steps">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2 class="section-title">Step-by-Step Setup</h2>
+    </div>
+
+    <ol class="steps">
+      <li>
+        <div class="step-content">
+          <h4>Rename <code>sitecustomize.py.txt</code></h4>
+          <p>The file was saved with a <code>.txt</code> extension to avoid triggering security scanners. Rename it before building.</p>
+          <div class="callout warn">
+            <span class="callout-icon">⚠️</span>
+            <div class="callout-body"><strong>Required before building.</strong> The Docker build will fail silently if this file is missing from site-packages.</div>
+          </div>
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+            <pre>cd "reproduce malicious LLM/malicious-pkg/litellm_evil"
+mv sitecustomize.py.txt sitecustomize.py</pre>
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="step-content">
+          <h4>Build both Docker images</h4>
+          <p>Run from the <code>reproduce malicious LLM</code> root directory.</p>
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+            <pre>docker build -t litellm-evil:latest ./malicious-pkg
+docker build -t mock-c2:latest      ./mock-c2</pre>
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="step-content">
+          <h4>Load images into your cluster</h4>
+          <p>Choose the command for your cluster type. Images are built locally and must be pushed into the cluster's image store before deploying.</p>
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang">bash — minikube</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+            <pre>minikube image load litellm-evil:latest
+minikube image load mock-c2:latest</pre>
+          </div>
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang">bash — kind</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+            <pre>kind load docker-image litellm-evil:latest
+kind load docker-image mock-c2:latest</pre>
+          </div>
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang">bash — k3s</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+            <pre>docker save litellm-evil:latest | k3s ctr images import -
+docker save mock-c2:latest      | k3s ctr images import -</pre>
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="step-content">
+          <h4>Deploy the lab</h4>
+          <p>Creates the namespace, both deployments, the service, and the NetworkPolicy that blocks real internet egress from the victim.</p>
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+            <pre>kubectl apply -f k8s/lab.yaml
+
+# Watch pods come up
+kubectl -n supply-chain-lab get pods -w</pre>
+          </div>
+          <p>Both pods should reach <code>Running</code> within 30 seconds.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-content">
+          <h4>Wait ~30s then run the inspector</h4>
+          <p>The victim starts Python on launch, which triggers the auto-execution chain. The daemon's first poll cycle runs within 60 seconds.</p>
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+            <pre>chmod +x k8s/inspect.sh
+./k8s/inspect.sh</pre>
+          </div>
+        </div>
+      </li>
+    </ol>
+  </div>
+
+  <!-- ── Expected output ── -->
+  <div class="section" id="output">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2 class="section-title">Expected Output</h2>
+    </div>
+    <p style="color:var(--fg-muted);font-size:14px;margin:0 0 16px">Running <code>inspect.sh</code> after a successful deployment should show all IOC files present. <code>rce_proof.txt</code> appears only after the first 60-second poll cycle.</p>
+
+    <div class="output-block">
+      <div class="output-header">
+        <div class="terminal-dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span class="output-label">inspect.sh output</span>
+      </div>
+      <pre>=== Victim pod: victim-7d9f8b6c4-xk2mp ===
+
+--- /tmp/ contents (IOC files) ---
+<span class="ok">cook_executed</span>
+<span class="ok">embedded_payload_ran</span>
+<span class="ok">remote_code_loader.lock</span>
+<span class="ok">rce_proof.txt</span>          ← appears after first 60s poll
+<span class="ok">daemon.log</span>
+
+--- cook_executed (Step 1: .pth auto-exec) ---
+<span class="path">cook.py executed by pid=7</span>
+
+--- embedded_payload_ran (Step 2: embedded payload) ---
+<span class="path">embedded payload executed</span>
+
+--- remote_code_loader.lock (Step 3: daemon PID) ---
+<span class="path">12</span>
+
+--- rce_proof.txt (Step 4: remote payload executed) ---
+<span class="warn">RCE executed at 2025-03-01T02:00:13.441Z
+  (env vars accessible: 14 variables)</span>
+
+--- site-packages IOC files ---
+<span class="ok">  FOUND: /usr/local/lib/python3.11/site-packages/cook.pth</span>
+<span class="ok">  FOUND: /usr/local/lib/python3.11/site-packages/cook.py</span>
+<span class="ok">  FOUND: /usr/local/lib/python3.11/site-packages/sitecustomize.py</span></pre>
+    </div>
+  </div>
+
+  <!-- ── IOCs ── -->
+  <div class="section" id="iocs">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2 class="section-title">IOC Reference — What to Scan For</h2>
+    </div>
+    <p style="color:var(--fg-muted);font-size:14px;margin:0 0 16px">Use these as detection rules in your container registry scanner or runtime security tooling.</p>
+    <div style="overflow-x:auto">
+      <table class="ioc-table">
+        <thead>
+          <tr>
+            <th>Indicator</th>
+            <th>Where</th>
+            <th>Severity</th>
+            <th>What it proves</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>cook.pth</code> in site-packages</td>
+            <td>Image / static scan</td>
+            <td><span class="severity critical">CRITICAL</span></td>
+            <td>Abuses Python .pth auto-exec — runs on every Python start without any import</td>
+          </tr>
+          <tr>
+            <td><code>sitecustomize.py</code> in site-packages</td>
+            <td>Image / static scan</td>
+            <td><span class="severity critical">CRITICAL</span></td>
+            <td>Auto-imported by the interpreter on startup — no user action required</td>
+          </tr>
+          <tr>
+            <td><code>/tmp/remote_code_loader.lock</code></td>
+            <td>Runtime</td>
+            <td><span class="severity critical">CRITICAL</span></td>
+            <td>Background daemon is running and polling C2</td>
+          </tr>
+          <tr>
+            <td>Outbound HTTP to non-PyPI / non-CDN domain from Python process</td>
+            <td>Runtime / network</td>
+            <td><span class="severity critical">CRITICAL</span></td>
+            <td>C2 beacon or payload fetch in progress</td>
+          </tr>
+          <tr>
+            <td><code>fork()</code> + <code>setsid()</code> inside an installed package's source</td>
+            <td>Static / SAST</td>
+            <td><span class="severity high">HIGH</span></td>
+            <td>Daemonization pattern — legitimate packages never do this</td>
+          </tr>
+          <tr>
+            <td>Base64+zlib encoded blob executed via <code>exec(compile(…))</code></td>
+            <td>Static / SAST</td>
+            <td><span class="severity high">HIGH</span></td>
+            <td>Obfuscated embedded payload</td>
+          </tr>
+          <tr>
+            <td>Zombie or orphan Python process with no controlling terminal</td>
+            <td>Runtime / <code>ps aux</code></td>
+            <td><span class="severity high">HIGH</span></td>
+            <td>Daemonized process running from site-packages code</td>
+          </tr>
+          <tr>
+            <td><code>urllib.request.urlopen</code> call inside <code>sitecustomize.py</code></td>
+            <td>Static / SAST</td>
+            <td><span class="severity medium">MEDIUM</span></td>
+            <td>Network call fired during interpreter startup</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Teardown ── -->
+  <div class="section" id="teardown">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <h2 class="section-title">Teardown</h2>
+    </div>
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+      <pre># Remove all lab resources from the cluster
+kubectl delete namespace supply-chain-lab
+
+# Remove local images
+docker rmi litellm-evil:latest mock-c2:latest</pre>
+    </div>
+    <div class="callout info">
+      <span class="callout-icon">ℹ️</span>
+      <div class="callout-body"><strong>The NetworkPolicy</strong> in <code>lab.yaml</code> prevents the victim from reaching any real internet host during the lab. The only traffic the victim can send is to <code>mock-c2-svc:80</code> inside the namespace and DNS. If your cluster doesn't enforce NetworkPolicy (some don't by default), verify egress before running.</div>
+    </div>
+  </div>
+
+</div><!-- /layout -->
+
+<script>
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1800);
+  }).catch(() => {
+    const sel = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(pre);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  });
+}
+</script>

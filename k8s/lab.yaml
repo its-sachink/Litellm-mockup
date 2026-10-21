@@ -1,0 +1,110 @@
+---
+# ── Namespace ────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: supply-chain-lab
+
+---
+# ── Mock C2 server ───────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-c2
+  namespace: supply-chain-lab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mock-c2
+  template:
+    metadata:
+      labels:
+        app: mock-c2
+    spec:
+      containers:
+      - name: mock-c2
+        image: mock-c2:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 80
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 3
+          periodSeconds: 5
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mock-c2-svc
+  namespace: supply-chain-lab
+spec:
+  selector:
+    app: mock-c2
+  ports:
+  - port: 80
+    targetPort: 80
+
+---
+# ── Victim pod ───────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: victim
+  namespace: supply-chain-lab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: victim
+  template:
+    metadata:
+      labels:
+        app: victim
+    spec:
+      containers:
+      - name: victim
+        image: litellm-evil:latest
+        imagePullPolicy: Never
+        env:
+        - name: C2_DOMAIN_URL
+          value: "http://mock-c2-svc/domain.txt"
+        # Simulated secrets — in a real compromise these would be exfiltrated
+        - name: OPENAI_API_KEY
+          value: "sk-demo-openai-key-would-be-stolen"
+        - name: AWS_ACCESS_KEY_ID
+          value: "AKIADEMO000000000000"
+        - name: AWS_SECRET_ACCESS_KEY
+          value: "demo-secret-key-would-be-stolen"
+        - name: DATABASE_URL
+          value: "postgresql://user:password@db:5432/prod"
+
+---
+# ── NetworkPolicy: lock down egress to mock-c2 only ─────────────────────────
+# Prevents the victim from accidentally reaching real external C2 infra.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: victim-egress-lockdown
+  namespace: supply-chain-lab
+spec:
+  podSelector:
+    matchLabels:
+      app: victim
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS
+  - ports:
+    - port: 53
+      protocol: UDP
+  # Allow only mock-c2-svc inside the namespace
+  - to:
+    - podSelector:
+        matchLabels:
+          app: mock-c2
+    ports:
+    - port: 80
